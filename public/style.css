@@ -236,11 +236,28 @@ a { color: inherit; }
   max-width: 1180px;
   margin: 70px auto 0;
   padding: 0 clamp(16px, 5vw, 48px);
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: 28px;
-  align-items: center;
 }
+.titre-dossiers { font-size: 2.4rem; margin: 48px 0 18px; }
+.liste-affaires { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+
+/* couleur de chaque niveau */
+.niveau-1 { --niveau: #3ddc84; }
+.niveau-2 { --niveau: #f3b24a; }
+.niveau-3 { --niveau: #ff6b3d; }
+.niveau-4 { --niveau: #c04bff; }
+.dossier-affaire { border-top: 3px solid var(--niveau, var(--rouge)); transition: transform 0.25s, box-shadow 0.25s; }
+.dossier-affaire:hover { transform: translateY(-4px); box-shadow: var(--ombre-forte), 0 0 40px color-mix(in srgb, var(--niveau, #e0283c) 25%, transparent); }
+.dossier-affaire .surtitre { color: var(--niveau, var(--rouge)); }
+.badge-niveau {
+  position: absolute; bottom: 10px; left: 10px;
+  font-family: var(--cinema); font-size: 1.05rem; letter-spacing: 0.1em;
+  color: #0b0b0b; background: var(--niveau, var(--rouge));
+  padding: 1px 8px;
+}
+.etoiles { letter-spacing: 0.12em; }
+.etoiles .eteintes { opacity: 0.2; }
+.actions-affaire { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.actions-affaire .btn { padding: 9px 18px; font-size: 1.15rem; }
 
 /* Dossier de l'affaire */
 .dossier-affaire {
@@ -285,7 +302,7 @@ a { color: inherit; }
 .dossier-meta { display: flex; flex-wrap: wrap; gap: 8px; }
 .dossier-meta span { border: 1px solid var(--bord-fort); padding: 3px 10px; border-radius: 3px; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; color: #c7c2bb; }
 
-.puces { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.puces { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .puces li { display: flex; align-items: center; gap: 16px; border-left: 3px solid var(--rouge); padding: 4px 0 4px 16px; }
 .puces b { font-family: var(--cinema); font-weight: 400; font-size: 3rem; line-height: 1; color: var(--texte); min-width: 1.2em; }
 .puces span { color: var(--texte-doux); }
@@ -685,7 +702,9 @@ body.secousse { animation: secousse 0.45s; }
 
 /* ---------- Téléphone et petite tablette ---------- */
 @media (max-width: 979px) {
-  .sous-hero { grid-template-columns: 1fr; margin-top: 56px; }
+  .sous-hero { margin-top: 56px; }
+  .liste-affaires { grid-template-columns: 1fr; }
+  .puces { grid-template-columns: 1fr; }
   .faits { grid-template-columns: 1fr; }
   .fin-grille { grid-template-columns: 1fr; }
   .score { margin-top: 0; }

@@ -27,13 +27,13 @@
     </nav>
 
     <div class="hero">
-      <p class="hero-horodatage">Annecy · samedi 14 mars · <span class="rouge">23h38</span></p>
+      <p class="hero-horodatage">Brigade criminelle · <span class="rouge">4 dossiers non résolus</span></p>
       <h1 class="titre-jeu" data-texte="INTERROGATOIRE">INTERROGATOIRE</h1>
-      <p class="hero-slogan">Quatre suspects. Vingt questions. <span>Une seule vérité.</span></p>
+      <p class="hero-slogan">Des suspects. Des mensonges. <span>Une seule vérité.</span></p>
       <p class="accroche">Pas de liste de questions : tu écris ce que tu veux. Ils mentent, se contredisent… et finissent par craquer.</p>
       <div class="actions-hero">
-        <button id="btn-commencer" class="btn btn-principal btn-grand" disabled>Ouvrir l'enquête</button>
-        <button id="btn-reprendre" class="btn btn-fantome btn-grand hidden">Reprendre</button>
+        <button id="btn-commencer" class="btn btn-principal btn-grand" disabled>Choisir une enquête</button>
+        <button id="btn-reprendre" class="btn btn-fantome btn-grand hidden">Reprendre mon enquête</button>
       </div>
     </div>
 
@@ -42,26 +42,13 @@
     </div>
 
     <div class="sous-hero">
-      <article class="dossier-affaire" id="carte-belvedere">
-        <div class="dossier-photo" aria-hidden="true">
-          <svg class="silhouette" viewBox="0 0 100 130"><circle cx="50" cy="34" r="22"/><path d="M6 130 Q8 72 50 66 Q92 72 94 130Z"/></svg>
-          <span class="dossier-etiquette">Pièce n° 1</span>
-        </div>
-        <div class="dossier-corps">
-          <div class="tampon tampon-coin">Classé secret</div>
-          <p class="surtitre">Affaire n° 001</p>
-          <h2>Mort au Belvédère</h2>
-          <p id="accueil-accroche" class="dossier-accroche">Chargement de l'affaire…</p>
-          <div id="accueil-suspects" class="avatars-empiles"></div>
-          <div class="dossier-meta"><span>4 suspects</span><span>15–25 min</span><span>Difficulté ★★☆</span></div>
-        </div>
-      </article>
-
       <ul class="puces">
-        <li><b>20</b><span>questions pour toute l'enquête</span></li>
-        <li><b>7</b><span>pièces à conviction à leur montrer</span></li>
+        <li><b>4</b><span>affaires, de Facile à Expert</span></li>
+        <li><b>16–20</b><span>questions par enquête, pas une de plus</span></li>
         <li><b>1</b><span>seule accusation. Pas de seconde chance.</span></li>
       </ul>
+      <h2 class="section-titre titre-dossiers">Les dossiers</h2>
+      <div id="liste-affaires" class="liste-affaires"><p class="aide">Chargement des dossiers…</p></div>
     </div>
 
     <p id="bandeau-demo" class="bandeau-demo hidden">
@@ -73,13 +60,13 @@
   <!-- ===== Briefing ===== -->
   <section id="ecran-briefing" class="ecran ecran-sombre hidden">
     <div class="briefing">
-      <p class="briefing-heure"><span class="point-rec"></span>REC · 23:38:12</p>
+      <p class="briefing-heure"><span class="point-rec"></span>REC · <span id="brief-numero"></span></p>
       <h2 class="titre-cinema" id="brief-titre"></h2>
       <p id="brief-resume" class="brief-resume machine"></p>
       <div class="faits">
         <div class="fait"><span>Victime</span><p id="brief-victime"></p></div>
         <div class="fait"><span>Lieu</span><p id="brief-lieu"></p></div>
-        <div class="fait"><span>Heure du décès</span><p id="brief-date"></p></div>
+        <div class="fait"><span>Quand</span><p id="brief-date"></p></div>
       </div>
       <h3 class="section-titre">Les suspects</h3>
       <div id="brief-suspects" class="grille-suspects"></div>

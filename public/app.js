@@ -1,30 +1,47 @@
 'use strict';
 
 (() => {
-  const MAX_QUESTIONS = 20;
   const MAX_CARACTERES = 200;
-  const CLE_SAUVEGARDE = 'interrogatoire-belvedere-v1';
+  const CLE_SAUVEGARDE = 'interrogatoire-partie-v2';
+  const CLE_RESULTATS = 'interrogatoire-resultats-v1';
   const $ = (id) => document.getElementById(id);
 
-  let affaire = null;        // données publiques de l'affaire (sans la solution)
+  let affaires = [];         // données publiques de toutes les affaires (sans les solutions)
+  let modeDemo = false;
+  let affaire = null;        // affaire en cours
   let etat = null;           // partie en cours, sauvegardée sur l'appareil
   let preuveJointe = null;
   let enAttente = false;
   let chronoId = null;
 
+  const maxQuestions = () => affaire.questions;
+
   // ---------- Sauvegarde locale ----------
-  function charger() {
-    try { const s = localStorage.getItem(CLE_SAUVEGARDE); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+  function lire(cle) {
+    try { const s = localStorage.getItem(cle); return s ? JSON.parse(s) : null; } catch (e) { return null; }
   }
-  function sauver() {
-    try { localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(etat)); } catch (e) { /* stockage indisponible */ }
+  function ecrire(cle, valeur) {
+    try { localStorage.setItem(cle, JSON.stringify(valeur)); } catch (e) { /* stockage indisponible */ }
   }
+  const charger = () => lire(CLE_SAUVEGARDE);
+  const sauver = () => ecrire(CLE_SAUVEGARDE, etat);
   function effacer() {
     try { localStorage.removeItem(CLE_SAUVEGARDE); } catch (e) { /* stockage indisponible */ }
+  }
+  // meilleur score obtenu pour chaque affaire
+  const resultats = () => lire(CLE_RESULTATS) || {};
+  function enregistrerResultat(r) {
+    const tous = resultats();
+    const avant = tous[affaire.id];
+    if (!avant || (r.gagne && (!avant.gagne || r.score > avant.score))) {
+      tous[affaire.id] = { gagne: r.gagne, score: r.score };
+      ecrire(CLE_RESULTATS, tous);
+    }
   }
 
   function nouvelEtat() {
     return {
+      affaireId: affaire.id,
       ecran: 'briefing',
       conversations: {},
       utilisees: 0,
@@ -48,15 +65,16 @@
   let local = null;
 
   async function chargerModeLocal() {
-    const [moteur, demo, scenario] = await Promise.all([
-      import('./lib/moteur.js'), import('./lib/demo.js'), import('./lib/affaire-belvedere.js'),
+    const [moteur, demo, liste] = await Promise.all([
+      import('./lib/moteur.js'), import('./lib/demo.js'), import('./lib/affaires/index.js'),
     ]);
     local = {
-      case: () => ({ ...scenario.publicCase, modeDemo: true }),
+      case: () => ({ affaires: liste.affaires.map((a) => a.publicCase), modeDemo: true }),
       ask: async (corps) => {
         const q = moteur.preparerQuestion(corps);
         await new Promise((r) => setTimeout(r, 500 + Math.random() * 600));
-        return moteur.finaliserReponse(demo.repondreDemo(q.suspectId, q.messages, q.preuve?.id), q.suspectId, q.contenu, true);
+        const brut = demo.repondreDemo(q.affaire, q.suspectId, q.messages, q.preuve?.id);
+        return moteur.finaliserReponse(q.affaire, brut, q.suspectId, q.contenu, true);
       },
       accuse: (corps) => moteur.verifierAccusation(corps),
     };
@@ -92,12 +110,18 @@
       court: `<path d="M29 42 Q29 19 50 19 Q71 19 71 42 Q67 29 50 28 Q33 29 29 42Z" fill="${p.cheveux}"/>`,
       long: `<path d="M29 44 Q30 21 50 20 Q70 21 71 44 Q62 30 46 31 Q36 33 29 44Z" fill="${p.cheveux}"/>`,
       degarni: `<path d="M30 48 Q28 34 34 29 L36 46Z M70 48 Q72 34 66 29 L64 46Z" fill="${p.cheveux}"/>`,
+      carre: `<path d="M27 60 Q24 20 50 19 Q76 20 73 60 L67 60 Q69 33 50 30 Q31 33 33 60Z" fill="${p.cheveux}"/>`,
     }[p.coiffure] || '';
     const accessoires = {
       lunettes: `<g fill="none" stroke="${encre}" stroke-width="2"><circle cx="42" cy="47" r="6"/><circle cx="58" cy="47" r="6"/><path d="M48 47h4"/></g>`,
       toque: `<path d="M31 32 Q26 13 39 15 Q43 4 54 8 Q66 4 68 17 Q77 18 69 32Z" fill="#fff" stroke="${encre}" stroke-width="1.5"/>`,
       tablier: `<path d="M39 84 L39 100 L61 100 L61 84Z" fill="#241510"/><path d="M39 84 L33 75 M61 84 L67 75" stroke="#241510" stroke-width="3"/>`,
       barbe: `<path d="M33 52 Q35 72 50 73 Q65 72 67 52 Q60 63 50 63 Q40 63 33 52Z" fill="${p.cheveux}"/>`,
+      moustache: `<path d="M40 56 Q45 52 50 55 Q55 52 60 56 Q55 59 50 57 Q45 59 40 56Z" fill="${p.cheveux}"/>`,
+      casquette: `<path d="M28 33 Q30 16 50 15 Q70 16 72 33Z" fill="#1f3354" stroke="${encre}" stroke-width="1.5"/><path d="M28 33 L76 33 Q74 38 60 37 L28 36Z" fill="#14223a"/><rect x="45" y="20" width="10" height="6" fill="#d9b44a"/>`,
+      bonnet: `<path d="M28 36 Q28 12 50 11 Q72 12 72 36Z" fill="#8a2f2f" stroke="${encre}" stroke-width="1.5"/><rect x="27" y="31" width="46" height="7" rx="2" fill="#6e2424"/><circle cx="50" cy="10" r="5" fill="#e9e2d6"/>`,
+      collier: `<g fill="#f3efe6" stroke="#bdb6a8" stroke-width="0.6"><circle cx="40" cy="76" r="2.2"/><circle cx="44" cy="78" r="2.2"/><circle cx="48" cy="79" r="2.2"/><circle cx="52" cy="79" r="2.2"/><circle cx="56" cy="78" r="2.2"/><circle cx="60" cy="76" r="2.2"/></g>`,
+      echarpe: `<path d="M34 72 Q50 82 66 72 L68 80 Q50 90 32 80Z" fill="#b8423a"/><path d="M56 78 L60 98 L66 96 L62 77Z" fill="#a53a33"/>`,
     }[p.accessoire] || '';
     return `<svg class="${classe}" viewBox="0 0 100 100" aria-hidden="true">
       <rect width="100" height="100" fill="${p.fond || '#2b3654'}"/>
@@ -326,22 +350,67 @@
     if (ecran === 'fin') renderFin();
   }
 
+  const SILHOUETTE = '<svg class="silhouette" viewBox="0 0 100 130" aria-hidden="true"><circle cx="50" cy="34" r="22"/><path d="M6 130 Q8 72 50 66 Q92 72 94 130Z"/></svg>';
+  const etoiles = (n) => `<span class="etoiles">${'★'.repeat(n)}<span class="eteintes">${'★'.repeat(4 - n)}</span></span>`;
+
   function renderAccueil() {
-    $('accueil-accroche').textContent = affaire.accroche;
-    $('accueil-suspects').innerHTML = affaire.suspects.map((s) => portrait(s.portrait)).join('');
-    $('btn-commencer').disabled = false;
-    $('bandeau-demo').classList.toggle('hidden', !affaire.modeDemo);
     const sauvegarde = charger();
+    const enCours = sauvegarde && !sauvegarde.resultat ? sauvegarde.affaireId : null;
+    const res = resultats();
+    $('liste-affaires').innerHTML = affaires.map((a) => {
+      const r = res[a.id];
+      const tampon = r
+        ? `<div class="tampon tampon-coin ${r.gagne ? 'vert' : ''}">${r.gagne ? `Résolue · ${r.score} pts` : 'Échec'}</div>`
+        : '';
+      return `<article class="dossier-affaire niveau-${a.niveau}">
+        <div class="dossier-photo">${SILHOUETTE}<span class="dossier-etiquette">Affaire n° ${a.numero}</span><span class="badge-niveau">${echapper(a.niveauLabel)}</span></div>
+        <div class="dossier-corps">
+          ${tampon}
+          <p class="surtitre">${etoiles(a.niveau)} · ${echapper(a.niveauLabel)}</p>
+          <h2>${echapper(a.titre)}</h2>
+          <p class="dossier-accroche">${echapper(a.accroche)}</p>
+          <div class="avatars-empiles">${a.suspects.map((s) => portrait(s.portrait)).join('')}</div>
+          <div class="dossier-meta"><span>${a.suspects.length} suspects</span><span>${a.questions} questions</span><span>${echapper(a.duree)}</span></div>
+          <div class="actions-affaire">
+            ${a.id === enCours ? `<button class="btn btn-principal" data-reprendre="${a.id}">Reprendre</button><button class="btn btn-fantome" data-ouvrir="${a.id}">Recommencer</button>`
+              : `<button class="btn btn-principal" data-ouvrir="${a.id}">${r ? 'Rejouer' : 'Ouvrir le dossier'}</button>`}
+          </div>
+        </div>
+      </article>`;
+    }).join('');
+    $('btn-commencer').disabled = false;
+    $('bandeau-demo').classList.toggle('hidden', !modeDemo);
     $('btn-reprendre').classList.toggle('hidden', !sauvegarde);
-    $('btn-reprendre').textContent = sauvegarde && sauvegarde.resultat ? 'Voir mon résultat' : 'Reprendre l\'enquête';
+    $('btn-reprendre').textContent = sauvegarde && sauvegarde.resultat ? 'Voir mon dernier résultat' : 'Reprendre mon enquête';
+  }
+
+  function ouvrirAffaire(id) {
+    const sauvegarde = charger();
+    if (sauvegarde && !sauvegarde.resultat && !confirm('Commencer cette enquête ? Ta partie en cours sera effacée.')) return;
+    affaire = affaires.find((a) => a.id === id);
+    etat = nouvelEtat();
+    sauver();
+    bruitage.boom();
+    afficher('briefing');
+  }
+
+  function reprendre() {
+    const sauvegarde = charger();
+    const a = sauvegarde && affaires.find((x) => x.id === sauvegarde.affaireId);
+    if (!a) return;
+    affaire = a;
+    etat = sauvegarde;
+    afficher(etat.resultat ? 'fin' : etat.ecran === 'fin' ? 'enquete' : etat.ecran);
   }
 
   function renderBriefing() {
+    const v = affaire.victime;
+    $('brief-numero').textContent = `Affaire n° ${affaire.numero} · ${affaire.niveauLabel}`;
     $('brief-titre').textContent = affaire.titre;
-    $('brief-victime').textContent = `${affaire.victime.nom}, ${affaire.victime.age} ans. ${affaire.victime.description}`;
+    $('brief-victime').textContent = `${v.nom}${v.age ? `, ${v.age} ans` : ''}. ${v.description}`;
     $('brief-lieu').textContent = affaire.lieu;
     $('brief-date').textContent = affaire.date;
-    machineAEcrire($('brief-resume'), affaire.resume);
+    machineAEcrire($('brief-resume'), `${affaire.resume} Tu as ${affaire.questions} questions pour trouver la vérité.`);
     $('brief-suspects').innerHTML = affaire.suspects.map((s, i) => `
       <article class="fiche-suspect" data-numero="0${i + 1}">
         ${portrait(s.portrait)}
@@ -423,9 +492,9 @@
   }
 
   function majCompteur() {
-    const restantes = MAX_QUESTIONS - etat.utilisees;
-    $('compteur').textContent = `${restantes}/${MAX_QUESTIONS}`;
-    $('jauge').style.width = `${(restantes / MAX_QUESTIONS) * 100}%`;
+    const restantes = maxQuestions() - etat.utilisees;
+    $('compteur').textContent = `${restantes}/${maxQuestions()}`;
+    $('jauge').style.width = `${(restantes / maxQuestions()) * 100}%`;
     document.querySelector('.jauge').classList.toggle('bas', restantes <= 5);
     const fini = restantes <= 0;
     $('saisie').disabled = fini || enAttente;
@@ -454,7 +523,7 @@
     const question = $('saisie').value.trim();
     if (!question && !preuveJointe) { toast('Écris une question ou joins une pièce.'); return; }
     if (question.length > MAX_CARACTERES) { toast(`200 caractères maximum.`); return; }
-    if (etat.utilisees >= MAX_QUESTIONS) { toast('Tu as utilisé tes 20 questions. Il est temps d\'accuser !'); return; }
+    if (etat.utilisees >= maxQuestions()) { toast(`Tu as utilisé tes ${maxQuestions()} questions. Il est temps d'accuser !`); return; }
 
     const suspectId = etat.suspectActif;
     const conv = etat.conversations[suspectId] || [];
@@ -476,6 +545,7 @@
 
     try {
       const data = await api('ask', {
+        affaireId: affaire.id,
         suspectId,
         question,
         preuveId,
@@ -500,7 +570,7 @@
     } finally {
       enAttente = false;
       majCompteur();
-      const restantes = MAX_QUESTIONS - etat.utilisees;
+      const restantes = maxQuestions() - etat.utilisees;
       if (restantes <= 5 && restantes > 0) bruitage.battement();
       if (restantes <= 0) toast('C\'était ta dernière question. À toi d\'accuser !');
     }
@@ -622,13 +692,14 @@
     }
     try {
       const resultat = await api('accuse', {
-        suspectId, mobileId, preuveId,
-        questionsRestantes: MAX_QUESTIONS - etat.utilisees,
+        affaireId: affaire.id, suspectId, mobileId, preuveId,
+        questionsRestantes: maxQuestions() - etat.utilisees,
         secondes: etat.secondes,
       });
       resultat.accuse = suspect.nom;
       etat.resultat = resultat;
       sauver();
+      enregistrerResultat(resultat);
       $('modale-accusation').classList.add('hidden');
       clearInterval(chronoId);
       ambiance.arreter();
@@ -663,21 +734,16 @@
       <h3 class="section-titre">Score</h3>
       <div class="score-total">${r.score} <small>pts</small></div>
       ${lignes ? `<table>${lignes}</table>` : ''}
-      <p class="aide">${etat.utilisees} question(s) utilisée(s) · durée ${duree(etat.secondes)}</p>`;
+      <p class="aide">${etat.utilisees} question(s) utilisée(s) · durée ${duree(etat.secondes)}${r.multiplicateur > 1 ? ` · points ×${r.multiplicateur} (niveau ${echapper(affaire.niveauLabel)})` : ''}</p>`;
   }
 
   // ---------- Événements ----------
-  $('btn-commencer').addEventListener('click', () => {
-    if (charger() && !confirm('Commencer une nouvelle enquête ? La partie sauvegardée sera effacée.')) return;
-    etat = nouvelEtat();
-    sauver();
-    bruitage.boom();
-    afficher('briefing');
-  });
-  $('btn-reprendre').addEventListener('click', () => {
-    etat = charger();
-    if (!etat) return;
-    afficher(etat.resultat ? 'fin' : etat.ecran === 'fin' ? 'enquete' : etat.ecran);
+  $('btn-commencer').addEventListener('click', () => $('liste-affaires').scrollIntoView({ behavior: 'smooth' }));
+  $('btn-reprendre').addEventListener('click', reprendre);
+  $('liste-affaires').addEventListener('click', (e) => {
+    const ouvrir = e.target.closest('[data-ouvrir]');
+    if (ouvrir) ouvrirAffaire(ouvrir.dataset.ouvrir);
+    if (e.target.closest('[data-reprendre]')) reprendre();
   });
   $('btn-ouvrir-dossier').addEventListener('click', () => afficher('enquete'));
   $('btn-rejouer').addEventListener('click', () => {
@@ -719,7 +785,7 @@
   // Montrer une preuve : bouton, fenêtre de choix, ou glisser-déposer dans la conversation
   $('vue-pieces').addEventListener('click', (e) => {
     const b = e.target.closest('[data-montrer]');
-    if (b && etat.utilisees < MAX_QUESTIONS) joindrePreuve(b.dataset.montrer);
+    if (b && etat.utilisees < maxQuestions()) joindrePreuve(b.dataset.montrer);
   });
   $('vue-pieces').addEventListener('dragstart', (e) => {
     const p = e.target.closest('[data-preuve]');
@@ -735,7 +801,7 @@
     profondeur = 0;
     $('zone-depot').classList.add('hidden');
     const data = e.dataTransfer.getData('text/plain');
-    if (data.startsWith('preuve:') && etat.utilisees < MAX_QUESTIONS) joindrePreuve(data.slice(7));
+    if (data.startsWith('preuve:') && etat.utilisees < maxQuestions()) joindrePreuve(data.slice(7));
   });
 
   $('btn-preuve').addEventListener('click', () => {
@@ -777,6 +843,6 @@
       await chargerModeLocal();
       return api('case');
     })
-    .then((data) => { affaire = data; renderAccueil(); })
-    .catch(() => { $('accueil-accroche').textContent = 'Impossible de charger l\'affaire.'; });
+    .then((data) => { affaires = data.affaires; modeDemo = data.modeDemo; renderAccueil(); })
+    .catch(() => { $('liste-affaires').innerHTML = '<p class="aide">Impossible de charger les affaires.</p>'; });
 })();
