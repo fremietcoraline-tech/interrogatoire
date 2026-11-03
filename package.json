@@ -1,0 +1,17 @@
+{
+  "name": "interrogatoire",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jeu d'enquête où l'on interroge librement des suspects animés par une IA.",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0"
+  }
+}
