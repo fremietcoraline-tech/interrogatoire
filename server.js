@@ -43,6 +43,7 @@ const server = http.createServer(async (req, res) => {
     return res.end('Introuvable');
   }
   res.setHeader('Content-Type', TYPES[path.extname(fichier)] || 'application/octet-stream');
+  res.setHeader('Cache-Control', 'no-cache');
   fs.createReadStream(fichier).pipe(res);
 });
 
