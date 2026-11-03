@@ -1,4 +1,4 @@
-import { systemPromptFor } from '../lib/affaire-belvedere.js';
+import { systemPromptFor } from '../lib/prompt.js';
 import { iaActive, repondreIA, Anthropic } from '../lib/ia.js';
 import { repondreDemo } from '../lib/demo.js';
 import { preparerQuestion, finaliserReponse, ErreurJeu } from '../lib/moteur.js';
@@ -22,8 +22,8 @@ export default async function handler(req, res) {
   const demo = !iaActive();
   try {
     brut = demo
-      ? repondreDemo(q.suspectId, q.messages, q.preuve?.id)
-      : await repondreIA(systemPromptFor(q.suspectId), q.messages);
+      ? repondreDemo(q.affaire, q.suspectId, q.messages, q.preuve?.id)
+      : await repondreIA(systemPromptFor(q.affaire, q.suspectId), q.messages);
   } catch (err) {
     if (err instanceof Anthropic.RateLimitError) {
       return send(res, 503, { erreur: 'Le suspect a besoin d\'une pause. Réessaie dans quelques secondes.' });
@@ -36,5 +36,5 @@ export default async function handler(req, res) {
     return send(res, 500, { erreur: 'Erreur interne.' });
   }
 
-  send(res, 200, finaliserReponse(brut, q.suspectId, q.contenu, demo));
+  send(res, 200, finaliserReponse(q.affaire, brut, q.suspectId, q.contenu, demo));
 }
