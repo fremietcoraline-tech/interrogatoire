@@ -4,77 +4,87 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Interrogatoire — jeu d'enquête</title>
-  <meta name="description" content="Interroge librement des suspects animés par une IA et démasque le coupable. 20 questions, une seule accusation.">
-  <meta name="theme-color" content="#121826">
+  <meta name="description" content="Quatre suspects. Vingt questions. Une seule vérité. Interroge librement les suspects et démasque le coupable.">
+  <meta name="theme-color" content="#07080c">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- ambiance : grain de film et vignettage, sur tous les écrans -->
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
 
   <!-- ===== Accueil ===== -->
   <section id="ecran-accueil" class="ecran ecran-accueil">
+    <canvas id="pluie" class="pluie" aria-hidden="true"></canvas>
+    <div class="gyrophare" aria-hidden="true"></div>
+
     <nav class="haut">
       <span class="marque"><span class="marque-point"></span>Interrogatoire</span>
       <a href="confidentialite.html" class="lien-discret">Confidentialité</a>
     </nav>
 
     <div class="hero">
-      <div class="hero-texte">
-        <p class="surtitre">Jeu d'enquête · propulsé par l'IA</p>
-        <h1 class="titre-jeu">Ils mentent.<br><span>À toi de le prouver.</span></h1>
-        <p class="accroche">Pas de liste de questions : tu écris ce que tu veux. Les suspects répondent avec leur personnalité, se contredisent… et finissent parfois par craquer.</p>
-        <ul class="puces">
-          <li><span class="puce-icone">?</span><div><b>20 questions</b><small>pour toute l'enquête</small></div></li>
-          <li><span class="puce-icone">📎</span><div><b>Des preuves</b><small>pour les confronter</small></div></li>
-          <li><span class="puce-icone">⚖</span><div><b>1 accusation</b><small>pas le droit à l'erreur</small></div></li>
-        </ul>
+      <p class="hero-horodatage">Annecy · samedi 14 mars · <span class="rouge">23h38</span></p>
+      <h1 class="titre-jeu" data-texte="INTERROGATOIRE">INTERROGATOIRE</h1>
+      <p class="hero-slogan">Quatre suspects. Vingt questions. <span>Une seule vérité.</span></p>
+      <p class="accroche">Pas de liste de questions : tu écris ce que tu veux. Ils mentent, se contredisent… et finissent par craquer.</p>
+      <div class="actions-hero">
+        <button id="btn-commencer" class="btn btn-principal btn-grand" disabled>Ouvrir l'enquête</button>
+        <button id="btn-reprendre" class="btn btn-fantome btn-grand hidden">Reprendre</button>
       </div>
+    </div>
 
+    <div class="ruban" aria-hidden="true">
+      <div class="ruban-defile">SCÈNE DE CRIME — NE PAS FRANCHIR — SCÈNE DE CRIME — NE PAS FRANCHIR — SCÈNE DE CRIME — NE PAS FRANCHIR — SCÈNE DE CRIME — NE PAS FRANCHIR — SCÈNE DE CRIME — NE PAS FRANCHIR —</div>
+    </div>
+
+    <div class="sous-hero">
       <article class="dossier-affaire" id="carte-belvedere">
-        <div class="dossier-onglet">Affaire n° 001</div>
+        <div class="dossier-photo" aria-hidden="true">
+          <svg class="silhouette" viewBox="0 0 100 130"><circle cx="50" cy="34" r="22"/><path d="M6 130 Q8 72 50 66 Q92 72 94 130Z"/></svg>
+          <span class="dossier-etiquette">Pièce n° 1</span>
+        </div>
         <div class="dossier-corps">
-          <div class="tampon tampon-coin">Confidentiel</div>
+          <div class="tampon tampon-coin">Classé secret</div>
+          <p class="surtitre">Affaire n° 001</p>
           <h2>Mort au Belvédère</h2>
           <p id="accueil-accroche" class="dossier-accroche">Chargement de l'affaire…</p>
           <div id="accueil-suspects" class="avatars-empiles"></div>
-          <div class="dossier-meta">
-            <span>👥 4 suspects</span><span>⏱ 15–25 min</span><span>★★☆ Difficulté</span>
-          </div>
-          <div class="actions-affaire">
-            <button id="btn-commencer" class="btn btn-principal" disabled>Commencer l'enquête</button>
-            <button id="btn-reprendre" class="btn btn-fantome hidden">Reprendre</button>
-          </div>
+          <div class="dossier-meta"><span>4 suspects</span><span>15–25 min</span><span>Difficulté ★★☆</span></div>
         </div>
-        <div class="dossier-suivant">Prochaine affaire bientôt disponible</div>
       </article>
+
+      <ul class="puces">
+        <li><b>20</b><span>questions pour toute l'enquête</span></li>
+        <li><b>7</b><span>pièces à conviction à leur montrer</span></li>
+        <li><b>1</b><span>seule accusation. Pas de seconde chance.</span></li>
+      </ul>
     </div>
 
     <p id="bandeau-demo" class="bandeau-demo hidden">
-      <b>Version démo</b> — les suspects utilisent des réponses préparées à l'avance. Pose des questions précises (horaires, badge, cave, dispute…) et montre-leur des preuves.
+      <b>Version démo</b> — les suspects utilisent des réponses préparées. Pose des questions précises (horaires, badge, cave, dispute…) et confronte-les aux preuves.
     </p>
-    <p class="mention">Tes questions sont envoyées à un service d'IA pour générer les réponses des suspects. <a href="confidentialite.html">En savoir plus</a></p>
+    <p class="mention">Tes questions servent uniquement à générer les réponses des suspects. <a href="confidentialite.html">En savoir plus</a></p>
   </section>
 
   <!-- ===== Briefing ===== -->
   <section id="ecran-briefing" class="ecran ecran-sombre hidden">
     <div class="briefing">
-      <div class="briefing-entete">
-        <p class="surtitre">Briefing · Affaire n° 001</p>
-        <h2 class="titre-machine" id="brief-titre"></h2>
-        <div class="tampon">Homicide ?</div>
-      </div>
+      <p class="briefing-heure"><span class="point-rec"></span>REC · 23:38:12</p>
+      <h2 class="titre-cinema" id="brief-titre"></h2>
+      <p id="brief-resume" class="brief-resume machine"></p>
       <div class="faits">
         <div class="fait"><span>Victime</span><p id="brief-victime"></p></div>
         <div class="fait"><span>Lieu</span><p id="brief-lieu"></p></div>
-        <div class="fait"><span>Quand</span><p id="brief-date"></p></div>
+        <div class="fait"><span>Heure du décès</span><p id="brief-date"></p></div>
       </div>
-      <p id="brief-resume" class="brief-resume"></p>
       <h3 class="section-titre">Les suspects</h3>
       <div id="brief-suspects" class="grille-suspects"></div>
       <div class="centre">
-        <button id="btn-ouvrir-dossier" class="btn btn-principal btn-grand">Ouvrir le dossier →</button>
+        <button id="btn-ouvrir-dossier" class="btn btn-principal btn-grand">Entrer en salle d'interrogatoire</button>
       </div>
     </div>
   </section>
@@ -92,13 +102,12 @@
           <span class="jauge-fond"><span class="jauge-barre" id="jauge"></span></span>
         </div>
         <span class="chrono" id="chrono">00:00</span>
-        <button id="btn-son" class="btn-icone" title="Musique d'ambiance">♪</button>
-        <button id="btn-accuser" class="btn btn-accuser">⚖ Accuser</button>
+        <button id="btn-son" class="btn-icone" title="Son et musique">♪</button>
+        <button id="btn-accuser" class="btn btn-accuser">J'accuse</button>
       </div>
     </header>
 
     <div class="enquete">
-      <!-- Dossier -->
       <aside id="panneau-dossier" class="panneau">
         <div class="segment" role="tablist">
           <button class="onglet actif" data-vue="pieces">Pièces</button>
@@ -112,11 +121,11 @@
         </div>
       </aside>
 
-      <!-- Interrogatoire -->
       <main id="panneau-chat" class="panneau panneau-chat">
+        <div class="lampe" aria-hidden="true"></div>
         <div id="choix-suspect" class="choix-suspect"></div>
         <div id="messages" class="messages" aria-live="polite"></div>
-        <div id="zone-depot" class="zone-depot hidden"><span>📎</span>Lâche la pièce ici pour la montrer au suspect</div>
+        <div id="zone-depot" class="zone-depot hidden"><span>📎</span>Lâche la pièce ici pour la mettre sous ses yeux</div>
         <form id="formulaire" class="formulaire">
           <div id="preuve-jointe" class="preuve-jointe hidden"></div>
           <div class="ligne-saisie">
@@ -128,11 +137,10 @@
         </form>
       </main>
 
-      <!-- Carnet -->
       <aside id="panneau-carnet" class="panneau panneau-carnet">
         <div class="panneau-titre">
           <h3>Carnet d'enquête</h3>
-          <span class="aide">Indices ajoutés automatiquement</span>
+          <span class="aide">Les aveux et contradictions s'inscrivent ici</span>
         </div>
         <div class="panneau-defile">
           <ul id="liste-indices" class="liste-indices"></ul>
@@ -153,12 +161,12 @@
   <section id="ecran-fin" class="ecran ecran-sombre hidden">
     <div class="briefing fin">
       <div id="fin-tampon" class="tampon grand"></div>
-      <h2 class="titre-machine" id="fin-titre"></h2>
+      <h2 class="titre-cinema" id="fin-titre"></h2>
       <p id="fin-sous-titre" class="fin-sous-titre"></p>
       <div class="fin-grille">
         <div>
           <h3 class="section-titre">Ce qui s'est vraiment passé</h3>
-          <p id="fin-revelation" class="revelation"></p>
+          <p id="fin-revelation" class="revelation machine"></p>
         </div>
         <div id="fin-score" class="score"></div>
       </div>
@@ -168,13 +176,30 @@
     </div>
   </section>
 
+  <!-- ===== Mises en scène ===== -->
+  <div id="flash-indice" class="flash-indice hidden" aria-live="assertive">
+    <span class="flash-label">Nouvel indice</span>
+    <p id="flash-texte"></p>
+  </div>
+
+  <div id="cinema" class="cinema hidden" aria-live="assertive">
+    <div class="bande bande-haut"></div>
+    <div class="cinema-centre">
+      <p class="cinema-label" id="cinema-label">J'accuse…</p>
+      <div id="cinema-portrait" class="cinema-portrait"></div>
+      <h2 class="cinema-nom" id="cinema-nom"></h2>
+      <div id="cinema-tampon" class="cinema-tampon"></div>
+    </div>
+    <div class="bande bande-bas"></div>
+  </div>
+
   <!-- ===== Fenêtres ===== -->
   <div id="modale-preuve" class="modale hidden" role="dialog" aria-modal="true" aria-labelledby="titre-modale-preuve">
     <div class="modale-contenu">
       <h3 id="titre-modale-preuve">Montrer une pièce</h3>
       <p class="aide">Choisis la pièce à mettre sous les yeux du suspect.</p>
       <div id="liste-choix-preuves" class="liste-choix-preuves"></div>
-      <div class="actions-modale"><button class="btn btn-fantome-clair" data-fermer>Annuler</button></div>
+      <div class="actions-modale"><button class="btn btn-fantome" data-fermer>Annuler</button></div>
     </div>
   </div>
 
@@ -193,7 +218,7 @@
       <div id="acc-preuves" class="acc-liste"></div>
       <p id="acc-erreur" class="erreur"></p>
       <div class="actions-modale">
-        <button type="button" class="btn btn-fantome-clair" data-fermer>Continuer l'enquête</button>
+        <button type="button" class="btn btn-fantome" data-fermer>Continuer l'enquête</button>
         <button type="submit" class="btn btn-accuser">J'accuse !</button>
       </div>
     </form>

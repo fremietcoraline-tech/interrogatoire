@@ -39,7 +39,7 @@
 
   // ---------- Outils ----------
   const echapper = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const formater = (s) => echapper(s).replace(/\*([^*\n]+)\*/g, '<span class="attitude">$1</span>');
+  const formater = (s) => echapper(s).replace(/\*([^*\n]+)\*\s*/g, '<span class="attitude">$1</span>');
   const suspectPar = (id) => affaire.suspects.find((s) => s.id === id);
   const preuvePar = (id) => affaire.preuves.find((p) => p.id === id);
   const duree = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
@@ -161,9 +161,144 @@
     };
   })();
 
+  // ---------- Bruitages dramatiques (générés, sans fichier) ----------
+  const bruitage = (() => {
+    let ctx = null;
+    const actif = () => !etat || etat.musique !== false;
+    function contexte() {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      ctx.resume();
+      return ctx;
+    }
+    function bruit(duree) {
+      const c = contexte();
+      const tampon = c.createBuffer(1, c.sampleRate * duree, c.sampleRate);
+      const d = tampon.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = c.createBufferSource();
+      src.buffer = tampon;
+      return src;
+    }
+    function grave(freq, duree, volume, delai = 0) {
+      const c = contexte();
+      const t = c.currentTime + delai;
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(freq, t);
+      o.frequency.exponentialRampToValueAtTime(Math.max(20, freq * 0.4), t + duree);
+      g.gain.setValueAtTime(volume, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + duree);
+      o.connect(g).connect(c.destination);
+      o.start(t);
+      o.stop(t + duree + 0.05);
+    }
+    const securise = (fn) => (...args) => { if (!actif()) return; try { fn(...args); } catch (e) { /* audio indisponible */ } };
+    return {
+      // coup sourd de bande-annonce
+      boom: securise(() => { grave(110, 1.6, 0.6); grave(55, 2.2, 0.5); }),
+      // tampon qui s'abat sur le dossier
+      tampon: securise(() => {
+        const c = contexte(), src = bruit(0.25), f = c.createBiquadFilter(), g = c.createGain();
+        f.type = 'lowpass'; f.frequency.value = 900;
+        g.gain.setValueAtTime(0.9, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.25);
+        src.connect(f).connect(g).connect(c.destination);
+        src.start();
+        grave(80, 0.5, 0.7);
+      }),
+      // roulement de tambour qui monte
+      roulement: securise((duree) => {
+        const c = contexte(), src = bruit(duree), f = c.createBiquadFilter(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+        f.type = 'bandpass'; f.frequency.value = 180; f.Q.value = 0.8;
+        g.gain.setValueAtTime(0.05, c.currentTime);
+        g.gain.linearRampToValueAtTime(0.5, c.currentTime + duree);
+        lfo.frequency.value = 18; lg.gain.value = 0.25;
+        lfo.connect(lg).connect(g.gain);
+        src.connect(f).connect(g).connect(c.destination);
+        src.start(); lfo.start(); lfo.stop(c.currentTime + duree);
+      }),
+      // battement de cœur quand il reste peu de questions
+      battement: securise(() => { grave(65, 0.18, 0.7); grave(60, 0.2, 0.55, 0.22); }),
+      // petit déclic de machine à écrire
+      touche: securise(() => {
+        const c = contexte(), src = bruit(0.03), f = c.createBiquadFilter(), g = c.createGain();
+        f.type = 'highpass'; f.frequency.value = 2500;
+        g.gain.value = 0.08;
+        src.connect(f).connect(g).connect(c.destination);
+        src.start();
+      }),
+    };
+  })();
+
   function majBoutonSon() {
     $('btn-son').classList.toggle('off', !etat.musique);
-    $('btn-son').title = etat.musique ? 'Couper la musique' : 'Activer la musique';
+    $('btn-son').title = etat.musique ? 'Couper le son' : 'Activer le son';
+  }
+
+  // ---------- Pluie sur l'écran d'accueil ----------
+  const pluie = (() => {
+    const canvas = $('pluie');
+    const ctx2d = canvas.getContext('2d');
+    let gouttes = [], animId = null;
+    function dimensionner() {
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+      const n = Math.round((canvas.width * canvas.height) / 9000);
+      gouttes = Array.from({ length: n }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        l: 10 + Math.random() * 22,
+        v: 9 + Math.random() * 10,
+        a: 0.1 + Math.random() * 0.35,
+      }));
+    }
+    function image() {
+      ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+      ctx2d.lineWidth = 1;
+      for (const g of gouttes) {
+        ctx2d.strokeStyle = `rgba(190, 200, 230, ${g.a})`;
+        ctx2d.beginPath();
+        ctx2d.moveTo(g.x, g.y);
+        ctx2d.lineTo(g.x - g.l * 0.18, g.y + g.l);
+        ctx2d.stroke();
+        g.y += g.v;
+        g.x -= g.v * 0.18;
+        if (g.y > canvas.height) { g.y = -g.l; g.x = Math.random() * (canvas.width + 100); }
+      }
+      animId = requestAnimationFrame(image);
+    }
+    return {
+      demarrer() {
+        if (animId || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        dimensionner();
+        image();
+      },
+      arreter() { cancelAnimationFrame(animId); animId = null; },
+      dimensionner,
+    };
+  })();
+  window.addEventListener('resize', () => { if (!$('ecran-accueil').classList.contains('hidden')) pluie.dimensionner(); });
+
+  // texte qui s'écrit lettre par lettre, façon machine à écrire
+  let machineId = null;
+  function machineAEcrire(el, texte, vitesse = 22) {
+    clearInterval(machineId);
+    el.textContent = '';
+    el.classList.add('ecrit-encore');
+    let i = 0;
+    machineId = setInterval(() => {
+      el.textContent = texte.slice(0, ++i);
+      if (i % 3 === 0) bruitage.touche();
+      if (i >= texte.length) { clearInterval(machineId); el.classList.remove('ecrit-encore'); }
+    }, vitesse);
+  }
+
+  const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function secouer() {
+    document.body.classList.remove('secousse');
+    void document.body.offsetWidth;
+    document.body.classList.add('secousse');
   }
 
   // ---------- Écrans ----------
@@ -185,6 +320,8 @@
     } else {
       ambiance.arreter();
     }
+    if (ecran === 'accueil') pluie.demarrer(); else pluie.arreter();
+    if (ecran !== 'briefing') clearInterval(machineId);
     if (ecran === 'briefing') renderBriefing();
     if (ecran === 'fin') renderFin();
   }
@@ -204,9 +341,9 @@
     $('brief-victime').textContent = `${affaire.victime.nom}, ${affaire.victime.age} ans. ${affaire.victime.description}`;
     $('brief-lieu').textContent = affaire.lieu;
     $('brief-date').textContent = affaire.date;
-    $('brief-resume').textContent = affaire.resume;
-    $('brief-suspects').innerHTML = affaire.suspects.map((s) => `
-      <article class="fiche-suspect">
+    machineAEcrire($('brief-resume'), affaire.resume);
+    $('brief-suspects').innerHTML = affaire.suspects.map((s, i) => `
+      <article class="fiche-suspect" data-numero="0${i + 1}">
         ${portrait(s.portrait)}
         <h4>${echapper(s.nom)}, ${s.age} ans</h4>
         <p class="role">${echapper(s.role)}</p>
@@ -263,7 +400,8 @@
     let html = '';
     if (!conv.length) {
       html = `<div class="intro-suspect">${portrait(s.portrait)}<h3>${echapper(s.nom)}</h3>
-        <p>${echapper(s.role)}. Pose ta première question, ou montre-lui une pièce du dossier.</p></div>`;
+        <p class="intro-role">${echapper(s.role)}</p>
+        <p>Sous la lampe, le silence. Pose ta première question, ou mets-lui une pièce sous les yeux.</p></div>`;
     }
     for (const m of conv) {
       html += m.role === 'user' ? bulleJoueur(m) : ligneSuspect(s, formater(m.affichage));
@@ -362,7 +500,9 @@
     } finally {
       enAttente = false;
       majCompteur();
-      if (etat.utilisees >= MAX_QUESTIONS) toast('C\'était ta dernière question. À toi d\'accuser !');
+      const restantes = MAX_QUESTIONS - etat.utilisees;
+      if (restantes <= 5 && restantes > 0) bruitage.battement();
+      if (restantes <= 0) toast('C\'était ta dernière question. À toi d\'accuser !');
     }
   }
 
@@ -395,9 +535,21 @@
     }
     if (dernier) {
       renderCarnet(dernier);
-      toast('📓 Nouvel indice ajouté au carnet');
+      flashIndice(etat.indices.find((x) => x.id === dernier).texte);
       if (!$('panneau-carnet').classList.contains('visible')) $('pastille-carnet').classList.remove('hidden');
     }
+  }
+
+  let flashId = null;
+  function flashIndice(texte) {
+    const f = $('flash-indice');
+    $('flash-texte').textContent = texte;
+    f.classList.add('hidden');
+    void f.offsetWidth;
+    f.classList.remove('hidden');
+    bruitage.boom();
+    clearTimeout(flashId);
+    flashId = setTimeout(() => f.classList.add('hidden'), 3300);
   }
 
   function montrerPanneau(id) {
@@ -421,7 +573,33 @@
     $('acc-preuves').innerHTML = affaire.preuves.map((p) => `
       <label><input type="radio" name="preuve" value="${p.id}"> ${p.icone} ${echapper(p.titre)}</label>`).join('');
     $('acc-erreur').textContent = '';
+    confirmationEnAttente = false;
+    const bouton = $('form-accusation').querySelector('[type=submit]');
+    bouton.textContent = 'J\'accuse !';
+    bouton.classList.remove('confirmer');
     $('modale-accusation').classList.remove('hidden');
+  }
+
+  let confirmationEnAttente = false;
+
+  // la grande scène : roulement de tambour, puis le tampon tombe
+  async function sceneAccusation(suspect, resultat) {
+    const c = $('cinema');
+    $('cinema-label').textContent = 'J\'accuse…';
+    $('cinema-portrait').innerHTML = portrait(suspect.portrait);
+    $('cinema-nom').textContent = suspect.nom;
+    const tampon = $('cinema-tampon');
+    tampon.className = 'cinema-tampon';
+    tampon.textContent = resultat.gagne ? 'Coupable' : 'Innocent';
+    c.classList.remove('hidden', 'secousse');
+    bruitage.roulement(2.6);
+    await pause(2700);
+    tampon.classList.add('frappe');
+    if (resultat.gagne) tampon.classList.add('vert');
+    bruitage.tampon();
+    c.classList.add('secousse');
+    await pause(2200);
+    c.classList.add('hidden');
   }
 
   async function accuser(e) {
@@ -432,17 +610,29 @@
       $('acc-erreur').textContent = 'Choisis un coupable, un mobile et une preuve.';
       return;
     }
-    const nom = suspectPar(suspectId).nom;
-    if (!confirm(`Tu accuses ${nom}. C'est définitif. Confirmer ?`)) return;
+    const suspect = suspectPar(suspectId);
+    const bouton = $('form-accusation').querySelector('[type=submit]');
+    // deux clics pour accuser : c'est définitif
+    if (!confirmationEnAttente) {
+      confirmationEnAttente = true;
+      bouton.textContent = `Confirmer : ${suspect.nom.split(' ')[0]} ?`;
+      bouton.classList.add('confirmer');
+      $('acc-erreur').textContent = 'C\'est définitif. Clique encore pour confirmer.';
+      return;
+    }
     try {
-      etat.resultat = await api('accuse', {
+      const resultat = await api('accuse', {
         suspectId, mobileId, preuveId,
         questionsRestantes: MAX_QUESTIONS - etat.utilisees,
         secondes: etat.secondes,
       });
-      etat.resultat.accuse = nom;
+      resultat.accuse = suspect.nom;
+      etat.resultat = resultat;
       sauver();
       $('modale-accusation').classList.add('hidden');
+      clearInterval(chronoId);
+      ambiance.arreter();
+      await sceneAccusation(suspect, resultat);
       afficher('fin');
     } catch (err) {
       $('acc-erreur').textContent = err.message;
@@ -452,9 +642,12 @@
   function renderFin() {
     const r = etat.resultat;
     const tampon = $('fin-tampon');
-    tampon.textContent = r.gagne ? 'Affaire résolue' : 'Échec';
+    tampon.textContent = r.gagne ? 'Affaire résolue' : 'Affaire classée';
     tampon.classList.toggle('vert', r.gagne);
-    $('fin-titre').textContent = r.gagne ? 'Bravo, inspecteur !' : 'Mauvaise pioche…';
+    tampon.classList.remove('frappe');
+    void tampon.offsetWidth;
+    tampon.classList.add('frappe');
+    $('fin-titre').textContent = r.gagne ? 'Justice est faite.' : 'Le coupable court toujours.';
     let sous = r.gagne
       ? `Tu as démasqué ${r.coupable.nom}.`
       : `Tu as accusé ${r.accuse}, mais le coupable était ${r.coupable.nom}. L'enquête est perdue.`;
@@ -478,6 +671,7 @@
     if (charger() && !confirm('Commencer une nouvelle enquête ? La partie sauvegardée sera effacée.')) return;
     etat = nouvelEtat();
     sauver();
+    bruitage.boom();
     afficher('briefing');
   });
   $('btn-reprendre').addEventListener('click', () => {
@@ -558,6 +752,14 @@
 
   $('btn-accuser').addEventListener('click', ouvrirAccusation);
   $('form-accusation').addEventListener('submit', accuser);
+  $('form-accusation').addEventListener('change', () => {
+    if (!confirmationEnAttente) return;
+    confirmationEnAttente = false;
+    const bouton = $('form-accusation').querySelector('[type=submit]');
+    bouton.textContent = 'J\'accuse !';
+    bouton.classList.remove('confirmer');
+    $('acc-erreur').textContent = '';
+  });
 
   document.querySelectorAll('[data-fermer]').forEach((b) => b.addEventListener('click', () => b.closest('.modale').classList.add('hidden')));
   document.querySelectorAll('.modale').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m) m.classList.add('hidden'); }));
@@ -569,6 +771,7 @@
 
   // ---------- Démarrage ----------
   montrerPanneau('panneau-chat');
+  pluie.demarrer();
   api('case')
     .catch(async () => {
       await chargerModeLocal();
