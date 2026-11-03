@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Interrogatoire — jeu d'enquête</title>
+  <meta name="description" content="Interroge librement des suspects animés par une IA et démasque le coupable. 20 questions, une seule accusation.">
+  <meta name="theme-color" content="#121826">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== Accueil ===== -->
+  <section id="ecran-accueil" class="ecran ecran-accueil">
+    <nav class="haut">
+      <span class="marque"><span class="marque-point"></span>Interrogatoire</span>
+      <a href="confidentialite.html" class="lien-discret">Confidentialité</a>
+    </nav>
+
+    <div class="hero">
+      <div class="hero-texte">
+        <p class="surtitre">Jeu d'enquête · propulsé par l'IA</p>
+        <h1 class="titre-jeu">Ils mentent.<br><span>À toi de le prouver.</span></h1>
+        <p class="accroche">Pas de liste de questions : tu écris ce que tu veux. Les suspects répondent avec leur personnalité, se contredisent… et finissent parfois par craquer.</p>
+        <ul class="puces">
+          <li><span class="puce-icone">?</span><div><b>20 questions</b><small>pour toute l'enquête</small></div></li>
+          <li><span class="puce-icone">📎</span><div><b>Des preuves</b><small>pour les confronter</small></div></li>
+          <li><span class="puce-icone">⚖</span><div><b>1 accusation</b><small>pas le droit à l'erreur</small></div></li>
+        </ul>
+      </div>
+
+      <article class="dossier-affaire" id="carte-belvedere">
+        <div class="dossier-onglet">Affaire n° 001</div>
+        <div class="dossier-corps">
+          <div class="tampon tampon-coin">Confidentiel</div>
+          <h2>Mort au Belvédère</h2>
+          <p id="accueil-accroche" class="dossier-accroche">Chargement de l'affaire…</p>
+          <div id="accueil-suspects" class="avatars-empiles"></div>
+          <div class="dossier-meta">
+            <span>👥 4 suspects</span><span>⏱ 15–25 min</span><span>★★☆ Difficulté</span>
+          </div>
+          <div class="actions-affaire">
+            <button id="btn-commencer" class="btn btn-principal" disabled>Commencer l'enquête</button>
+            <button id="btn-reprendre" class="btn btn-fantome hidden">Reprendre</button>
+          </div>
+        </div>
+        <div class="dossier-suivant">Prochaine affaire bientôt disponible</div>
+      </article>
+    </div>
+
+    <p id="bandeau-demo" class="bandeau-demo hidden">
+      <b>Version démo</b> — les suspects utilisent des réponses préparées à l'avance. Pose des questions précises (horaires, badge, cave, dispute…) et montre-leur des preuves.
+    </p>
+    <p class="mention">Tes questions sont envoyées à un service d'IA pour générer les réponses des suspects. <a href="confidentialite.html">En savoir plus</a></p>
+  </section>
+
+  <!-- ===== Briefing ===== -->
+  <section id="ecran-briefing" class="ecran ecran-sombre hidden">
+    <div class="briefing">
+      <div class="briefing-entete">
+        <p class="surtitre">Briefing · Affaire n° 001</p>
+        <h2 class="titre-machine" id="brief-titre"></h2>
+        <div class="tampon">Homicide ?</div>
+      </div>
+      <div class="faits">
+        <div class="fait"><span>Victime</span><p id="brief-victime"></p></div>
+        <div class="fait"><span>Lieu</span><p id="brief-lieu"></p></div>
+        <div class="fait"><span>Quand</span><p id="brief-date"></p></div>
+      </div>
+      <p id="brief-resume" class="brief-resume"></p>
+      <h3 class="section-titre">Les suspects</h3>
+      <div id="brief-suspects" class="grille-suspects"></div>
+      <div class="centre">
+        <button id="btn-ouvrir-dossier" class="btn btn-principal btn-grand">Ouvrir le dossier →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Enquête ===== -->
+  <section id="ecran-enquete" class="ecran ecran-enquete hidden">
+    <header class="barre">
+      <div class="barre-gauche">
+        <span class="marque"><span class="marque-point"></span><span class="barre-titre" id="enquete-titre">Mort au Belvédère</span></span>
+      </div>
+      <div class="barre-infos">
+        <div class="jauge" title="Questions restantes">
+          <span class="jauge-label">Questions</span>
+          <span class="compteur" id="compteur">20/20</span>
+          <span class="jauge-fond"><span class="jauge-barre" id="jauge"></span></span>
+        </div>
+        <span class="chrono" id="chrono">00:00</span>
+        <button id="btn-son" class="btn-icone" title="Musique d'ambiance">♪</button>
+        <button id="btn-accuser" class="btn btn-accuser">⚖ Accuser</button>
+      </div>
+    </header>
+
+    <div class="enquete">
+      <!-- Dossier -->
+      <aside id="panneau-dossier" class="panneau">
+        <div class="segment" role="tablist">
+          <button class="onglet actif" data-vue="pieces">Pièces</button>
+          <button class="onglet" data-vue="suspects">Suspects</button>
+          <button class="onglet" data-vue="chrono">Chronologie</button>
+        </div>
+        <div class="panneau-defile">
+          <div id="vue-pieces" class="vue"></div>
+          <div id="vue-suspects" class="vue hidden"></div>
+          <div id="vue-chrono" class="vue hidden"></div>
+        </div>
+      </aside>
+
+      <!-- Interrogatoire -->
+      <main id="panneau-chat" class="panneau panneau-chat">
+        <div id="choix-suspect" class="choix-suspect"></div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <div id="zone-depot" class="zone-depot hidden"><span>📎</span>Lâche la pièce ici pour la montrer au suspect</div>
+        <form id="formulaire" class="formulaire">
+          <div id="preuve-jointe" class="preuve-jointe hidden"></div>
+          <div class="ligne-saisie">
+            <button type="button" id="btn-preuve" class="btn-rond" title="Montrer une preuve">📎</button>
+            <textarea id="saisie" rows="1" maxlength="200" placeholder="Pose ta question…"></textarea>
+            <button type="submit" id="btn-envoyer" class="btn-rond btn-envoyer" title="Envoyer">➤</button>
+          </div>
+          <div class="aide-saisie"><span id="nb-car">0/200</span><span>Entrée pour envoyer · une preuve montrée compte pour 1 question</span></div>
+        </form>
+      </main>
+
+      <!-- Carnet -->
+      <aside id="panneau-carnet" class="panneau panneau-carnet">
+        <div class="panneau-titre">
+          <h3>Carnet d'enquête</h3>
+          <span class="aide">Indices ajoutés automatiquement</span>
+        </div>
+        <div class="panneau-defile">
+          <ul id="liste-indices" class="liste-indices"></ul>
+          <label for="notes" class="label-notes">Mes notes</label>
+          <textarea id="notes" class="notes" placeholder="Contradictions, horaires, intuitions…"></textarea>
+        </div>
+      </aside>
+    </div>
+
+    <nav class="nav-mobile">
+      <button data-panneau="panneau-dossier"><span class="nav-icone">📁</span><span>Dossier</span></button>
+      <button data-panneau="panneau-chat" class="actif"><span class="nav-icone">💬</span><span>Interrogatoire</span></button>
+      <button data-panneau="panneau-carnet"><span class="nav-icone">📓</span><span>Carnet</span><i id="pastille-carnet" class="pastille hidden"></i></button>
+    </nav>
+  </section>
+
+  <!-- ===== Fin ===== -->
+  <section id="ecran-fin" class="ecran ecran-sombre hidden">
+    <div class="briefing fin">
+      <div id="fin-tampon" class="tampon grand"></div>
+      <h2 class="titre-machine" id="fin-titre"></h2>
+      <p id="fin-sous-titre" class="fin-sous-titre"></p>
+      <div class="fin-grille">
+        <div>
+          <h3 class="section-titre">Ce qui s'est vraiment passé</h3>
+          <p id="fin-revelation" class="revelation"></p>
+        </div>
+        <div id="fin-score" class="score"></div>
+      </div>
+      <div class="centre">
+        <button id="btn-rejouer" class="btn btn-principal btn-grand">Retour à l'accueil</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Fenêtres ===== -->
+  <div id="modale-preuve" class="modale hidden" role="dialog" aria-modal="true" aria-labelledby="titre-modale-preuve">
+    <div class="modale-contenu">
+      <h3 id="titre-modale-preuve">Montrer une pièce</h3>
+      <p class="aide">Choisis la pièce à mettre sous les yeux du suspect.</p>
+      <div id="liste-choix-preuves" class="liste-choix-preuves"></div>
+      <div class="actions-modale"><button class="btn btn-fantome-clair" data-fermer>Annuler</button></div>
+    </div>
+  </div>
+
+  <div id="modale-accusation" class="modale hidden" role="dialog" aria-modal="true" aria-labelledby="titre-accusation">
+    <form id="form-accusation" class="modale-contenu large">
+      <div class="modale-entete">
+        <h3 id="titre-accusation">Accusation</h3>
+        <div class="tampon petit">Une seule chance</div>
+      </div>
+      <p class="aide">Si tu te trompes de coupable, l'enquête est perdue.</p>
+      <div class="etape"><span class="etape-num">1</span>Le coupable</div>
+      <div id="acc-suspects" class="acc-suspects"></div>
+      <div class="etape"><span class="etape-num">2</span>Le mobile</div>
+      <div id="acc-mobiles" class="acc-liste"></div>
+      <div class="etape"><span class="etape-num">3</span>La preuve</div>
+      <div id="acc-preuves" class="acc-liste"></div>
+      <p id="acc-erreur" class="erreur"></p>
+      <div class="actions-modale">
+        <button type="button" class="btn btn-fantome-clair" data-fermer>Continuer l'enquête</button>
+        <button type="submit" class="btn btn-accuser">J'accuse !</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
