@@ -27,7 +27,8 @@ jobs:
         run: |
           mkdir -p _site/lib
           cp -r public/. _site/
-          cp lib/affaire-belvedere.js lib/demo.js lib/moteur.js _site/lib/
+          cp lib/demo.js lib/moteur.js _site/lib/
+          cp -r lib/affaires _site/lib/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
